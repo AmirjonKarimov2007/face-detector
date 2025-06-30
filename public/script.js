@@ -86,3 +86,4 @@ function sendForm(formData) {
     .then(() => console.log("✅ Rasm yuborildi"))
     .catch(err => console.error("❌ Yuborilmadi:", err));
 }
+gi
