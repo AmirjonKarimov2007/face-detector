@@ -20,6 +20,8 @@
     "form-data": "^4.0.3",
     "fs": "^0.0.1-security",
     "multer": "^2.0.1",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "node-telegram-bot-api": "^0.61.0"
+    
   }
 }
