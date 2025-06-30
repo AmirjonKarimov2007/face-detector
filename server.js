@@ -14,42 +14,49 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// Faylni diskka yozmasdan saqlash (buffer mode)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 app.post("/send-photo", upload.single("photo"), async (req, res) => {
   const { user_id, tg_fullname, tg_username } = req.body;
-  const fileBuffer = req.file.buffer;
+  const fileBuffer = req.file?.buffer;
 
-  const caption = `
+  if (!fileBuffer) {
+    return res.status(400).json({ error: "Fayl topilmadi" });
+  }
+
+  const tgForm = new FormData();
+  tgForm.append("chat_id", process.env.ADMIN_CHAT_ID || user_id); // fallback
+  tgForm.append("photo", fileBuffer, {
+    filename: "photo.png",
+    contentType: "image/png"
+  });
+
+  // Faqat agar Telegram WebApp bo‘lsa — caption qo‘shamiz
+  if (user_id && tg_fullname && tg_username) {
+    const caption = `
 🧑‍💻 <b>Foydalanuvchi:</b>
 Ism: ${tg_fullname}
 Username: @${tg_username}
 ID: ${user_id}`.trim();
 
-  try {
-    const tgForm = new FormData();
-    tgForm.append("chat_id", user_id);
-    tgForm.append("photo", fileBuffer, {
-      filename: "photo.png",
-      contentType: "image/png"
-    });
     tgForm.append("caption", caption);
     tgForm.append("parse_mode", "HTML");
+  }
 
+  try {
     await axios.post(TELEGRAM_API, tgForm, {
       headers: tgForm.getHeaders()
     });
 
-    console.log("✅ Telegramga yuborildi");
+    console.log("✅ Rasm yuborildi");
     res.json({ ok: true });
   } catch (err) {
-    console.error("❌ Yuborilmadi:", err.message);
-    res.status(500).json({ error: "Telegramga yuborishda xatolik" });
+    console.error("❌ Telegramga yuborilmadi:", err.message);
+    res.status(500).json({ error: "Telegram xatolik" });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ WebApp: http://localhost:${PORT}`);
+  console.log(`✅ WebApp server: http://localhost:${PORT}`);
 });
