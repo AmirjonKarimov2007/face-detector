@@ -61,7 +61,7 @@ async function sendMessage(chatId, text) {
   });
 }
 
-const PORT = process.env.BOT_PORT || 8000;
+const PORT = 3000;
 app.listen(PORT, () => {
   console.log("🤖 Bot serveri ishga tushdi:", PORT);
 });
