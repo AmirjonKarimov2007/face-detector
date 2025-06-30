@@ -30,7 +30,7 @@ bot.onText(/\/start/, (msg) => {
 });
 
 bot.onText(/\/help/, (msg) => {
-  bot.sendMessage(msg.chat.id, "ℹ️ Bu bot sizni WebApp orqali kuzatadi.");
+  bot.sendMessage(msg.chat.id, "ℹ️ Bu botni sizga albatta yordam beradi,botni ishlatish uchun /start ni bosing.");
 });
 
 bot.on("message", (msg) => {
