@@ -1,4 +1,3 @@
-// ✅ server.js
 const express = require("express");
 const path = require("path");
 const multer = require("multer");
@@ -11,7 +10,6 @@ config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -20,53 +18,45 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 app.post("/send-photo", upload.single("photo"), async (req, res) => {
-  const {
-    user_id, tg_fullname, tg_username,
-    timestamp, latitude, longitude,
-    user_agent, platform
-  } = req.body;
+  const { user_id, tg_fullname, tg_username } = req.body;
   const fileBuffer = req.file?.buffer;
 
-  if (!fileBuffer) return res.status(400).json({ error: "Rasm yo‘q" });
+  if (!fileBuffer) {
+    return res.status(400).json({ error: "Fayl topilmadi" });
+  }
 
-  const caption = `
-🧑‍💻 <b>Foydalanuvchi:</b>
-Ism: ${tg_fullname || "Nomaʼlum"}
-Username: @${tg_username || "yo‘q"}
-ID: ${user_id || "nomaʼlum"}
-
-📍 <b>Joylashuv:</b>
-Latitude: ${latitude || "nomaʼlum"}
-Longitude: ${longitude || "nomaʼlum"}
-
-📱 <b>Qurilma:</b>
-Platforma: ${platform || "nomaʼlum"}
-User-Agent: ${user_agent?.slice(0, 80) || "nomaʼlum"}
-
-🕒 <b>Vaqt:</b> ${timestamp || "nomaʼlum"}
-  `.trim();
-
-  const form = new FormData();
-  form.append("chat_id", ADMIN_CHAT_ID || user_id);
-  form.append("photo", fileBuffer, {
+  const tgForm = new FormData();
+  tgForm.append("chat_id", process.env.ADMIN_CHAT_ID || user_id); // fallback
+  tgForm.append("photo", fileBuffer, {
     filename: "photo.png",
     contentType: "image/png"
   });
-  form.append("caption", caption);
-  form.append("parse_mode", "HTML");
+
+  // Faqat agar Telegram WebApp bo‘lsa — caption qo‘shamiz
+  if (user_id && tg_fullname && tg_username) {
+    const caption = `
+🧑‍💻 <b>Foydalanuvchi:</b>
+Ism: ${tg_fullname}
+Username: @${tg_username}
+ID: ${user_id}`.trim();
+
+    tgForm.append("caption", caption);
+    tgForm.append("parse_mode", "HTML");
+  }
 
   try {
-    await axios.post(TELEGRAM_API, form, {
-      headers: form.getHeaders()
+    await axios.post(TELEGRAM_API, tgForm, {
+      headers: tgForm.getHeaders()
     });
-    console.log("✅ Rasm botga yuborildi");
+
+    console.log("✅ Rasm yuborildi");
     res.json({ ok: true });
   } catch (err) {
-    console.error("❌ Telegram xatolik:", err.message);
-    res.status(500).json({ error: "Telegramga yuborilmadi" });
+    console.error("❌ Telegramga yuborilmadi:", err.message);
+    res.status(500).json({ error: "Telegram xatolik" });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ WebApp server ishga tushdi: http://localhost:${PORT}`);
+  console.log(`✅ WebApp server: http://localhost:${PORT}`);
 });

