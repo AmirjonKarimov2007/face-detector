@@ -89,7 +89,7 @@
       100% { transform: rotate(360deg); }
     }
 
-    .score, .record, .lives {
+    .score, .record, .lives, .rank {
       font-size: clamp(0.9rem, 4vw, 1.1rem);
       margin: 0.3rem 0;
       text-shadow: 0 0 10px #0af;
@@ -103,6 +103,11 @@
     .lives {
       color: #f00;
       text-shadow: 0 0 10px #f00;
+    }
+
+    .rank {
+      color: #0f0;
+      text-shadow: 0 0 10px #0f0;
     }
 
     .combo {
@@ -206,7 +211,7 @@
       background: linear-gradient(45deg, #0af, #0f0);
       border-radius: 10px;
       box-shadow: 0 0 15px rgba(0, 170, 255, 0.5);
-      max-height: 150px;
+      max-height: 120px;
       overflow-y: auto;
     }
 
@@ -301,11 +306,11 @@
         height: 35vh;
         max-height: 200px;
       }
-      .score, .record, .lives, .target-color, .combo, .leaderboard h3, .leaderboard li {
+      .score, .record, .lives, .rank, .target-color, .combo, .leaderboard h3, .leaderboard li {
         margin: 0.2rem 0;
       }
       .leaderboard {
-        max-height: 120px;
+        max-height: 100px;
       }
     }
   </style>
@@ -331,9 +336,10 @@
     <div class="score">Hisob: <span id="score">0</span></div>
     <div class="record">Shaxsiy rekord: <span id="personalRecord">0</span></div>
     <div class="lives">Hayotlar: <span id="lives">3</span></div>
+    <div class="rank">Sizning o‘rningiz: <span id="userRank">-</span></div>
     <div class="combo" id="combo">Combo: <span id="comboCount">0</span></div>
     <div class="leaderboard">
-      <h3>Liderlar Ro‘yxati</h3>
+      <h3>Reytinglar</h3>
       <ul id="leaderboard"></ul>
     </div>
     <div class="settings">
@@ -377,6 +383,7 @@
     const scoreDisplay = document.getElementById("score");
     const personalRecordDisplay = document.getElementById("personalRecord");
     const livesDisplay = document.getElementById("lives");
+    const userRankDisplay = document.getElementById("userRank");
     const leaderboardDisplay = document.getElementById("leaderboard");
     const targetColorText = document.getElementById("targetColor");
     const targetColorIndicator = document.getElementById("targetColorIndicator");
@@ -423,9 +430,17 @@
         leaderboardDisplay.innerHTML = leaderboard.length
           ? leaderboard.map((entry, index) => `<li>${index + 1}. ${entry.username || "Anonim"}: ${entry.score}</li>`).join("")
           : "<li>Hali reyting yo‘q</li>";
+
+        const userIndex = Object.entries(data.scores)
+          .map(([id, { score }], index) => ({ id, score, index }))
+          .sort((a, b) => b.score - a.score)
+          .findIndex(entry => entry.id === userId);
+
+        userRankDisplay.textContent = userIndex >= 0 ? userIndex + 1 : "-";
       } catch (err) {
         console.error("❌ Reyting yuklanmadi:", err);
         leaderboardDisplay.innerHTML = "<li>Reyting yuklanmadi</li>";
+        userRankDisplay.textContent = "-";
         if (userId === ADMIN_ID) {
           fetch("/log-error", {
             method: "POST",
