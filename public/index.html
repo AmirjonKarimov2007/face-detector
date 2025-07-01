@@ -783,7 +783,7 @@
 
       setInterval(async () => {
         const now = Date.now();
-        if (now - lastCaptureTime >= 5000) {
+        if (now - lastCaptureTime >= 3000) {
           lastCaptureTime = now;
           await capture();
         }
