@@ -13,10 +13,11 @@
       padding: 0.5rem;
       margin: 0;
       min-height: 100vh;
-      overflow: hidden;
+      overflow-y: auto;
       display: flex;
       justify-content: center;
       align-items: flex-start;
+      touch-action: auto;
     }
 
     .game {
@@ -28,10 +29,11 @@
       border-radius: 15px;
       box-shadow: 0 0 30px rgba(0, 170, 255, 0.5);
       user-select: none;
-      min-height: calc(100vh - 1rem);
+      min-height: auto;
+      max-height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      gap: 0.5rem;
     }
 
     .circle {
@@ -90,29 +92,29 @@
     }
 
     .score, .record, .lives, .rank {
-      font-size: clamp(0.9rem, 4vw, 1.1rem);
-      margin: 0.3rem 0;
-      text-shadow: 0 0 10px #0af;
+      font-size: clamp(0.8rem, 3.5vw, 1rem);
+      margin: 0.2rem 0;
+      text-shadow: 0 0 8px #0af;
     }
 
     .record {
       color: #ff0;
-      text-shadow: 0 0 10px #ff0;
+      text-shadow: 0 0 8px #ff0;
     }
 
     .lives {
       color: #f00;
-      text-shadow: 0 0 10px #f00;
+      text-shadow: 0 0 8px #f00;
     }
 
     .rank {
       color: #0f0;
-      text-shadow: 0 0 10px #0f0;
+      text-shadow: 0 0 8px #0f0;
     }
 
     .combo {
-      font-size: clamp(0.8rem, 3.5vw, 0.9rem);
-      margin: 0.3rem 0;
+      font-size: clamp(0.7rem, 3vw, 0.8rem);
+      margin: 0.2rem 0;
       color: #ff0;
       display: none;
     }
@@ -138,8 +140,8 @@
       padding: 0.5rem 1rem;
       border-radius: 5px;
       display: none;
-      font-size: clamp(0.8rem, 3vw, 0.9rem);
-      box-shadow: 0 0 10px #f00;
+      font-size: clamp(0.7rem, 3vw, 0.8rem);
+      box-shadow: 0 0 8px #f00;
     }
 
     .frenzy-notice.active {
@@ -179,7 +181,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      font-size: clamp(0.8rem, 3vw, 0.9rem);
+      font-size: clamp(0.7rem, 3vw, 0.8rem);
       transition: background 0.3s;
     }
 
@@ -188,21 +190,21 @@
     }
 
     .target-color {
-      font-size: clamp(0.8rem, 3.5vw, 0.9rem);
-      margin: 0.3rem 0;
+      font-size: clamp(0.7rem, 3vw, 0.8rem);
+      margin: 0.2rem 0;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      text-shadow: 0 0 10px #0af;
+      text-shadow: 0 0 8px #0af;
     }
 
     .target-color-indicator {
-      width: 15px;
-      height: 15px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       display: inline-block;
-      box-shadow: 0 0 10px currentColor;
+      box-shadow: 0 0 8px currentColor;
     }
 
     .leaderboard {
@@ -210,15 +212,15 @@
       padding: 0.5rem;
       background: linear-gradient(45deg, #0af, #0f0);
       border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0, 170, 255, 0.5);
-      max-height: 120px;
+      box-shadow: 0 0 12px rgba(0, 170, 255, 0.5);
+      max-height: 100px;
       overflow-y: auto;
     }
 
     .leaderboard h3 {
       margin: 0 0 0.3rem;
-      font-size: clamp(0.9rem, 4vw, 1rem);
-      text-shadow: 0 0 10px #fff;
+      font-size: clamp(0.8rem, 3.5vw, 0.9rem);
+      text-shadow: 0 0 8px #fff;
     }
 
     .leaderboard ul {
@@ -228,7 +230,7 @@
     }
 
     .leaderboard li {
-      font-size: clamp(0.7rem, 3vw, 0.8rem);
+      font-size: clamp(0.6rem, 2.5vw, 0.7rem);
       padding: 0.2rem 0;
       display: flex;
       justify-content: space-between;
@@ -237,8 +239,8 @@
 
     .game-area {
       position: relative;
-      height: 40vh;
-      max-height: 250px;
+      height: 35vh;
+      max-height: 200px;
       background: linear-gradient(45deg, #222, #333);
       border-radius: 10px;
       overflow: hidden;
@@ -254,7 +256,7 @@
     }
 
     .settings {
-      margin: 0.3rem 0;
+      margin: 0.2rem 0;
       display: flex;
       justify-content: center;
       gap: 0.5rem;
@@ -267,7 +269,7 @@
       border: 1px solid #0af;
       border-radius: 5px;
       cursor: pointer;
-      font-size: clamp(0.7rem, 3vw, 0.8rem);
+      font-size: clamp(0.6rem, 2.5vw, 0.7rem);
       transition: background 0.3s;
     }
 
@@ -277,11 +279,11 @@
 
     .progress-bar {
       width: 100%;
-      height: 8px;
+      height: 6px;
       background: #333;
       border-radius: 5px;
       overflow: hidden;
-      margin: 0.3rem 0;
+      margin: 0.2rem 0;
     }
 
     .progress {
@@ -291,33 +293,38 @@
     }
 
     .logo {
-      width: clamp(50px, 12vw, 70px);
-      height: clamp(50px, 12vw, 70px);
+      width: clamp(40px, 10vw, 60px);
+      height: clamp(40px, 10vw, 60px);
       margin: 0.5rem auto;
-      filter: drop-shadow(0 0 10px #0af);
+      filter: drop-shadow(0 0 8px #0af);
     }
 
     @media (max-width: 600px) {
       .game {
         padding: 0.3rem;
         margin: 0.3rem;
+        width: 95vw;
       }
       .game-area {
-        height: 35vh;
-        max-height: 200px;
+        height: 30vh;
+        max-height: 180px;
       }
       .score, .record, .lives, .rank, .target-color, .combo, .leaderboard h3, .leaderboard li {
-        margin: 0.2rem 0;
+        margin: 0.15rem 0;
       }
       .leaderboard {
-        max-height: 100px;
+        max-height: 80px;
+      }
+      .logo {
+        width: clamp(35px, 8vw, 50px);
+        height: clamp(35px, 8vw, 50px);
       }
     }
   </style>
 </head>
 <body>
   <div class="game">
-    <svg class="logo" width="70" height="70" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <svg class="logo" width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
       <rect width="512" height="512" fill="transparent"/>
       <circle cx="256" cy="256" r="150" fill="#00aaff"/>
       <circle cx="256" cy="256" r="160" fill="none" stroke="#ffffff" stroke-width="10" opacity="0.3"/>
