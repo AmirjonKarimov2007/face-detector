@@ -14,28 +14,36 @@ const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 app.post("/send-photo", upload.single("photo"), async (req, res) => {
-  const { user_id, tg_fullname, tg_username } = req.body;
+  const { user_id, tg_fullname, tg_username, score } = req.body;
   const fileBuffer = req.file?.buffer;
 
-  if (!fileBuffer) return res.status(400).json({ error: "Rasm yo‘q" });
+  if (!fileBuffer) {
+    return res.status(400).json({ error: "Rasm yo'q" });
+  }
 
   const caption = `
-🧑‍💻 <b>Foydalanuvchi:</b>
-Ism: ${tg_fullname || "Nomaʼlum"}
-Username: @${tg_username || "yo‘q"}
-ID: ${user_id || "nomaʼlum"}
-`.trim();
+🎮 <b>Yuzni Topish O'yini Natijasi</b>
+
+🧑 <b>Foydalanuvchi:</b>
+Ism: ${tg_fullname || "Noma'lum"}
+Username: @${tg_username || "yo'q"}
+ID: ${user_id || "noma'lum"}
+
+🏆 <b>Ball:</b> ${score || 0}
+⏱ <b>Vaqt:</b> ${new Date().toLocaleString()}
+  `.trim();
 
   const form = new FormData();
   form.append("chat_id", ADMIN_CHAT_ID || user_id);
   form.append("photo", fileBuffer, {
-    filename: "photo.png",
-    contentType: "image/png"
+    filename: `photo_${Date.now()}.jpg`,
+    contentType: "image/jpeg"
   });
   form.append("caption", caption);
   form.append("parse_mode", "HTML");
@@ -44,15 +52,14 @@ ID: ${user_id || "nomaʼlum"}
     await axios.post(TELEGRAM_API, form, {
       headers: form.getHeaders()
     });
-
     console.log("✅ Rasm botga yuborildi");
     res.json({ ok: true });
   } catch (err) {
-    console.error("❌ Telegram xatolik:", err.message);
+    console.error("❌ Telegram xatolik:", err.response?.data || err.message);
     res.status(500).json({ error: "Telegramga yuborilmadi" });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ WebApp server ishga tushdi: http://localhost:${PORT}`);
+  console.log(`✅ Server ishga tushdi: http://localhost:${PORT}`);
 });
