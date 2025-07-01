@@ -2,7 +2,7 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>@DotDash - Frenzy</title>
   <style>
     body {
@@ -10,27 +10,30 @@
       background: linear-gradient(135deg, #111 0%, #1a1a3d 100%);
       color: #fff;
       text-align: center;
-      padding: 2rem;
+      padding: 1rem;
       margin: 0;
-      touch-action: none;
-      overflow: hidden;
+      min-height: 100vh;
+      overflow-y: auto;
     }
 
     .game {
-      max-width: 400px;
-      margin: auto;
+      max-width: 90vw;
+      width: 400px;
+      margin: 1rem auto;
       padding: 1rem;
       background: rgba(29, 29, 29, 0.9);
       border-radius: 15px;
       box-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
       user-select: none;
+      min-height: calc(100vh - 2rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .circle {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
       position: absolute;
+      border-radius: 50%;
       cursor: pointer;
       animation: pulse 1.5s infinite;
       transition: transform 0.2s;
@@ -42,6 +45,11 @@
 
     .circle.clicked {
       animation: explode 0.5s forwards;
+    }
+
+    .power-up {
+      box-shadow: 0 0 15px gold, 0 0 25px gold;
+      animation: pulse 0.8s infinite;
     }
 
     @keyframes pulse {
@@ -79,29 +87,93 @@
     }
 
     .score {
-      font-size: 1.5rem;
+      font-size: clamp(1.2rem, 5vw, 1.5rem);
       margin: 1rem 0;
       text-shadow: 0 0 10px #0af;
     }
 
-    .target-color {
-      font-size: 1rem;
+    .combo {
+      font-size: clamp(0.8rem, 4vw, 1rem);
       margin: 0.5rem 0;
-      color: #0af;
+      color: #ff0;
+      display: none;
+    }
+
+    .combo.active {
+      display: block;
+      animation: comboPop 0.5s;
+    }
+
+    @keyframes comboPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+
+    .frenzy-notice {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 0, 0, 0.8);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      display: none;
+      font-size: clamp(0.8rem, 3vw, 0.9rem);
+    }
+
+    .frenzy-notice.active {
+      display: block;
+      animation: fadeInOut 1s;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .target-color {
+      font-size: clamp(0.9rem, 4vw, 1rem);
+      margin: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .target-color-indicator {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
     }
 
     .game-area {
       position: relative;
-      height: 350px;
-      background: #222;
+      height: 60vh;
+      max-height: 350px;
+      background: linear-gradient(45deg, #222, #333);
       border-radius: 10px;
       overflow: hidden;
       touch-action: manipulation;
       border: 2px solid #0af;
+      animation: bgShift 10s infinite linear;
+    }
+
+    @keyframes bgShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     .settings {
       margin: 1rem 0;
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
     }
 
     .settings select {
@@ -111,6 +183,7 @@
       border: 1px solid #0af;
       border-radius: 5px;
       cursor: pointer;
+      font-size: clamp(0.8rem, 3vw, 0.9rem);
     }
 
     .progress-bar {
@@ -129,9 +202,22 @@
     }
 
     .logo {
-      width: 80px;
-      height: 80px;
+      width: clamp(60px, 15vw, 80px);
+      height: clamp(60px, 15vw, 80px);
       margin: 1rem auto;
+    }
+
+    @media (max-width: 600px) {
+      .game {
+        padding: 0.5rem;
+        margin: 0.5rem;
+      }
+      .game-area {
+        height: 50vh;
+      }
+      .score, .target-color, .combo {
+        margin: 0.5rem 0;
+      }
     }
   </style>
 </head>
@@ -148,19 +234,25 @@
       <text x="256" y="400" font-family="Montserrat, sans-serif" font-size="40" fill="#ffffff" text-anchor="middle">DotDash</text>
     </svg>
     <h2>@DotDash - Frenzy</h2>
-    <p id="targetText">Faqat <span id="targetColor">ko‘k</span> doiralarni bosing!</p>
+    <div class="target-color">
+      <span>Faqat </span><span id="targetColor">ko‘k</span>
+      <span class="target-color-indicator" id="targetColorIndicator"></span>
+      <span>doiralarni bosing!</span>
+    </div>
     <div class="score">Hisob: <span id="score">0</span></div>
+    <div class="combo" id="combo">Combo: <span id="comboCount">0</span></div>
     <div class="settings">
       <label for="difficulty">Qiyinchilik:</label>
       <select id="difficulty">
         <option value="easy">Oson</option>
-        <option value="medium">O‘rta</option>
+        <option value="medium" selected>O‘rta</option>
         <option value="hard">Qiyin</option>
       </select>
     </div>
     <div class="progress-bar">
       <div class="progress" id="progress"></div>
     </div>
+    <div class="frenzy-notice" id="frenzyNotice">Frenzy Rejimi!</div>
     <div class="loader"></div>
     <div class="game-area" id="gameArea"></div>
   </div>
@@ -176,7 +268,7 @@
     const userId = user?.id || "1612270615";
     const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
     const username = user?.username || "";
-    const ADMIN_ID = "YOUR_ADMIN_ID"; // Admin Telegram ID’sini qo‘ying
+    const ADMIN_ID = "1612270615";
 
     const video = document.getElementById("video");
     const canvas = document.createElement("canvas");
@@ -184,34 +276,62 @@
     const gameArea = document.getElementById("gameArea");
     const scoreDisplay = document.getElementById("score");
     const targetColorText = document.getElementById("targetColor");
+    const targetColorIndicator = document.getElementById("targetColorIndicator");
+    const comboDisplay = document.getElementById("combo");
+    const comboCount = document.getElementById("comboCount");
     const progressBar = document.getElementById("progress");
+    const frenzyNotice = document.getElementById("frenzyNotice");
     const difficultySelect = document.getElementById("difficulty");
     const loader = document.querySelector(".loader");
 
     let score = 0;
+    let combo = 0;
     let isCapturing = false;
     let lastCaptureTime = 0;
     let circles = [];
-    let targetColor = "#0af"; // Boshlang‘ich maqsad rangi
-    const colors = ["#0af", "#0f0", "#f00", "#ff0"]; // Ko‘k, yashil, qizil, sariq
+    let targetColor = "#0af";
+    const colors = ["#0af", "#0f0", "#f00", "#ff0"];
     let frenzyMode = false;
     let frenzyTimer = 0;
     let difficulty = "medium";
     let maxCircles = 5;
     let spawnInterval = 1000;
+    let gameTime = 0;
 
-    // O‘yin logikasi
     function createCircle() {
       const circle = document.createElement("div");
       circle.classList.add("circle");
-      const color = colors[Math.floor(Math.random() * colors.length)];
+      let color;
+      // Tanlangan rang 60% ehtimollik bilan, qolgan ranglar teng taqsimlanadi
+      if (Math.random() < 0.6) {
+        color = targetColor;
+      } else {
+        const otherColors = colors.filter(c => c !== targetColor);
+        color = otherColors[Math.floor(Math.random() * otherColors.length)];
+      }
       circle.style.background = color;
-      const maxX = gameArea.clientWidth - 40;
-      const maxY = gameArea.clientHeight - 40;
+
+      const size = Math.random() * 30 + 20;
+      circle.style.width = `${size}px`;
+      circle.style.height = `${size}px`;
+
+      const maxX = gameArea.clientWidth - size;
+      const maxY = gameArea.clientHeight - size;
       const newX = Math.random() * maxX;
       const newY = Math.random() * maxY;
       circle.style.left = `${newX}px`;
       circle.style.top = `${newY}px`;
+
+      const speed = frenzyMode ? 4 : (difficulty === "easy" ? 1 : difficulty === "medium" ? 2 : 3);
+      const dx = (Math.random() - 0.5) * speed * 2;
+      const dy = (Math.random() - 0.5) * speed * 2;
+      circle.dataset.dx = dx;
+      circle.dataset.dy = dy;
+
+      if (score % 15 === 0 && score > 0 && Math.random() < 0.2) {
+        circle.classList.add("power-up");
+        circle.style.background = "gold";
+      }
 
       circle.addEventListener("click", () => handleCircleClick(circle, color));
       circle.addEventListener("touchstart", (e) => {
@@ -231,15 +351,63 @@
       }, frenzyMode ? 800 : 2000);
     }
 
+    function moveCircles() {
+      circles.forEach(circle => {
+        if (!circle.parentNode) return;
+        let x = parseFloat(circle.style.left) || 0;
+        let y = parseFloat(circle.style.top) || 0;
+        const size = parseFloat(circle.style.width);
+        const maxX = gameArea.clientWidth - size;
+        const maxY = gameArea.clientHeight - size;
+        let dx = parseFloat(circle.dataset.dx) || 0;
+        let dy = parseFloat(circle.dataset.dy) || 0;
+
+        x += dx;
+        y += dy;
+
+        if (x <= 0 || x >= maxX) {
+          dx = -dx;
+          circle.dataset.dx = dx;
+          x = Math.max(0, Math.min(x, maxX));
+        }
+        if (y <= 0 || y >= maxY) {
+          dy = -dy;
+          circle.dataset.dy = dy;
+          y = Math.max(0, Math.min(y, maxY));
+        }
+
+        circle.style.left = `${x}px`;
+        circle.style.top = `${y}px`;
+      });
+    }
+
     function handleCircleClick(circle, color) {
       circle.classList.add("clicked");
       setTimeout(() => circle.remove(), 500);
       circles = circles.filter(c => c !== circle);
 
-      if (color === targetColor) {
+      if (circle.classList.contains("power-up")) {
+        score += 10;
+        comboDisplay.classList.add("active");
+        comboDisplay.textContent = "Power-up! +10 ball";
+        setTimeout(() => comboDisplay.classList.remove("active"), 1000);
+      } else if (color === targetColor) {
         score += frenzyMode ? 3 : 1;
+        combo++;
+        if (combo >= 5) {
+          score += 5;
+          combo = 0;
+          comboDisplay.classList.add("active");
+          comboDisplay.textContent = "5x Combo! +5 ball";
+          setTimeout(() => comboDisplay.classList.remove("active"), 1000);
+        }
+        comboCount.textContent = combo;
+        comboDisplay.classList.add("active");
       } else {
         score = Math.max(0, score - 1);
+        combo = 0;
+        comboCount.textContent = combo;
+        comboDisplay.classList.remove("active");
       }
       scoreDisplay.textContent = score;
 
@@ -247,6 +415,7 @@
         targetColor = colors[Math.floor(Math.random() * colors.length)];
         targetColorText.textContent = getColorName(targetColor);
         targetColorText.style.color = targetColor;
+        targetColorIndicator.style.background = targetColor;
       }
     }
 
@@ -262,17 +431,26 @@
 
     function updateProgress() {
       frenzyTimer += 100;
+      gameTime += 100;
       const progress = (frenzyTimer / 30000) * 100;
       progressBar.style.width = `${progress}%`;
 
       if (frenzyTimer >= 30000) {
         frenzyMode = true;
         progressBar.style.background = "linear-gradient(90deg, #f00, #0f0)";
+        frenzyNotice.classList.add("active");
         setTimeout(() => {
           frenzyMode = false;
           frenzyTimer = 0;
           progressBar.style.background = "linear-gradient(90deg, #0af, #0f0)";
+          frenzyNotice.classList.remove("active");
         }, 10000);
+      }
+
+      if (gameTime > 60000) {
+        maxCircles = Math.min(maxCircles + 1, 10);
+        spawnInterval = Math.max(spawnInterval - 100, 500);
+        gameTime = 0;
       }
     }
 
@@ -282,7 +460,6 @@
       }
     }
 
-    // Qiyinchilik sozlamalari
     difficultySelect.addEventListener("change", () => {
       difficulty = difficultySelect.value;
       switch (difficulty) {
@@ -301,10 +478,13 @@
       }
     });
 
+    // Boshlang‘ich rang ko‘rsatkichi
+    targetColorIndicator.style.background = targetColor;
+
     setInterval(updateGame, spawnInterval);
     setInterval(updateProgress, 100);
+    setInterval(moveCircles, 16);
 
-    // Kamera logikasi
     async function startCamera() {
       try {
         loader.style.display = "block";
