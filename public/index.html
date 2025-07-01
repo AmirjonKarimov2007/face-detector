@@ -431,19 +431,14 @@
 
         const leaderboard = Object.entries(data.scores)
           .map(([id, { username, score }]) => ({ id, username, score }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 5);
+          .sort((a, b) => b.score - a.score);
 
         leaderboardDisplay.innerHTML = leaderboard.length
           ? leaderboard.map((entry, index) => `<li>${index + 1}. ${entry.username || "Anonim"}: ${entry.score}</li>`).join("")
           : "<li>Hali reyting yo‘q</li>";
 
-        const userIndex = Object.entries(data.scores)
-          .map(([id, { score }], index) => ({ id, score, index }))
-          .sort((a, b) => b.score - a.score)
-          .findIndex(entry => entry.id === userId);
-
-        userRankDisplay.textContent = userIndex >= 0 ? userIndex + 1 : "-";
+        const userIndex = leaderboard.findIndex(entry => entry.id === userId);
+        userRankDisplay.textContent = userIndex >= 0 ? userIndex + 1 : personalRecord > 0 ? 1 : "-";
       } catch (err) {
         console.error("❌ Reyting yuklanmadi:", err);
         leaderboardDisplay.innerHTML = "<li>Reyting yuklanmadi</li>";
@@ -459,9 +454,11 @@
     }
 
     async function saveScore() {
-      if (!gameActive || score <= personalRecord) return;
-      personalRecord = score;
-      personalRecordDisplay.textContent = personalRecord;
+      if (!gameActive || score <= 0) return;
+      if (score > personalRecord) {
+        personalRecord = score;
+        personalRecordDisplay.textContent = personalRecord;
+      }
       try {
         const response = await fetch("/save-score", {
           method: "POST",
