@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: 'Montserrat', sans-serif;
-      background: linear-gradient(135deg, #111 0%, #1a1a3d 100%);
+      background: linear-gradient(135deg, #1a1a3d 0%, #0d0d2b 100%);
       color: #fff;
       text-align: center;
       padding: 1rem;
@@ -21,9 +21,9 @@
       width: 400px;
       margin: 1rem auto;
       padding: 1rem;
-      background: rgba(29, 29, 29, 0.9);
-      border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
+      background: rgba(29, 29, 29, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0, 170, 255, 0.5);
       user-select: none;
       min-height: calc(100vh - 2rem);
       display: flex;
@@ -88,8 +88,15 @@
 
     .score {
       font-size: clamp(1.2rem, 5vw, 1.5rem);
-      margin: 1rem 0;
+      margin: 0.5rem 0;
       text-shadow: 0 0 10px #0af;
+    }
+
+    .record {
+      font-size: clamp(0.9rem, 4vw, 1rem);
+      margin: 0.5rem 0;
+      color: #ff0;
+      text-shadow: 0 0 10px #ff0;
     }
 
     .combo {
@@ -115,12 +122,13 @@
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(255, 0, 0, 0.8);
+      background: rgba(255, 0, 0, 0.9);
       color: #fff;
       padding: 0.5rem 1rem;
       border-radius: 5px;
       display: none;
       font-size: clamp(0.8rem, 3vw, 0.9rem);
+      box-shadow: 0 0 10px #f00;
     }
 
     .frenzy-notice.active {
@@ -142,6 +150,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
+      text-shadow: 0 0 10px #0af;
     }
 
     .target-color-indicator {
@@ -149,12 +158,41 @@
       height: 20px;
       border-radius: 50%;
       display: inline-block;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .leaderboard {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: linear-gradient(45deg, #0af, #0f0);
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 170, 255, 0.5);
+    }
+
+    .leaderboard h3 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1rem, 4vw, 1.2rem);
+      text-shadow: 0 0 10px #fff;
+    }
+
+    .leaderboard ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .leaderboard li {
+      font-size: clamp(0.8rem, 3vw, 0.9rem);
+      padding: 0.3rem 0;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .game-area {
       position: relative;
-      height: 60vh;
-      max-height: 350px;
+      height: 50vh;
+      max-height: 300px;
       background: linear-gradient(45deg, #222, #333);
       border-radius: 10px;
       overflow: hidden;
@@ -170,7 +208,7 @@
     }
 
     .settings {
-      margin: 1rem 0;
+      margin: 0.5rem 0;
       display: flex;
       justify-content: center;
       gap: 0.5rem;
@@ -184,6 +222,11 @@
       border-radius: 5px;
       cursor: pointer;
       font-size: clamp(0.8rem, 3vw, 0.9rem);
+      transition: background 0.3s;
+    }
+
+    .settings select:hover {
+      background: #444;
     }
 
     .progress-bar {
@@ -205,6 +248,7 @@
       width: clamp(60px, 15vw, 80px);
       height: clamp(60px, 15vw, 80px);
       margin: 1rem auto;
+      filter: drop-shadow(0 0 10px #0af);
     }
 
     @media (max-width: 600px) {
@@ -213,10 +257,11 @@
         margin: 0.5rem;
       }
       .game-area {
-        height: 50vh;
+        height: 40vh;
+        max-height: 250px;
       }
-      .score, .target-color, .combo {
-        margin: 0.5rem 0;
+      .score, .record, .target-color, .combo, .leaderboard h3, .leaderboard li {
+        margin: 0.3rem 0;
       }
     }
   </style>
@@ -240,7 +285,12 @@
       <span>doiralarni bosing!</span>
     </div>
     <div class="score">Hisob: <span id="score">0</span></div>
+    <div class="record">Shaxsiy rekord: <span id="personalRecord">0</span></div>
     <div class="combo" id="combo">Combo: <span id="comboCount">0</span></div>
+    <div class="leaderboard">
+      <h3>Liderlar Ro‘yxati</h3>
+      <ul id="leaderboard"></ul>
+    </div>
     <div class="settings">
       <label for="difficulty">Qiyinchilik:</label>
       <select id="difficulty">
@@ -266,8 +316,8 @@
 
     const user = Telegram.WebApp.initDataUnsafe?.user;
     const userId = user?.id || "1612270615";
-    const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
-    const username = user?.username || "";
+    const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Anonim";
+    const username = user?.username || "Anonim";
     const ADMIN_ID = "1612270615";
 
     const video = document.getElementById("video");
@@ -275,6 +325,8 @@
     const ctx = canvas.getContext("2d");
     const gameArea = document.getElementById("gameArea");
     const scoreDisplay = document.getElementById("score");
+    const personalRecordDisplay = document.getElementById("personalRecord");
+    const leaderboardDisplay = document.getElementById("leaderboard");
     const targetColorText = document.getElementById("targetColor");
     const targetColorIndicator = document.getElementById("targetColorIndicator");
     const comboDisplay = document.getElementById("combo");
@@ -286,6 +338,7 @@
 
     let score = 0;
     let combo = 0;
+    let personalRecord = 0;
     let isCapturing = false;
     let lastCaptureTime = 0;
     let circles = [];
@@ -298,11 +351,61 @@
     let spawnInterval = 1000;
     let gameTime = 0;
 
+    async function fetchScores() {
+      try {
+        const response = await fetch("/get-scores");
+        const data = await response.json();
+        personalRecord = data.scores[userId]?.score || 0;
+        personalRecordDisplay.textContent = personalRecord;
+
+        const leaderboard = Object.entries(data.scores)
+          .map(([id, { username, score }]) => ({ id, username, score }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5);
+
+        leaderboardDisplay.innerHTML = leaderboard.map((entry, index) => 
+          `<li>${index + 1}. ${entry.username || "Anonim"}: ${entry.score}</li>`
+        ).join("");
+      } catch (err) {
+        console.error("❌ Reyting yuklanmadi:", err);
+        if (userId === ADMIN_ID) {
+          fetch("/log-error", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "Reyting yuklanmadi: " + err.message, userId })
+          });
+        }
+      }
+    }
+
+    async function saveScore() {
+      if (score > personalRecord) {
+        personalRecord = score;
+        personalRecordDisplay.textContent = personalRecord;
+        try {
+          await fetch("/save-score", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, username, score })
+          });
+          await fetchScores();
+        } catch (err) {
+          console.error("❌ Natija saqlanmadi:", err);
+          if (userId === ADMIN_ID) {
+            fetch("/log-error", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ error: "Natija saqlanmadi: " + err.message, userId })
+            });
+          }
+        }
+      }
+    }
+
     function createCircle() {
       const circle = document.createElement("div");
       circle.classList.add("circle");
       let color;
-      // Tanlangan rang 60% ehtimollik bilan, qolgan ranglar teng taqsimlanadi
       if (Math.random() < 0.6) {
         color = targetColor;
       } else {
@@ -410,6 +513,7 @@
         comboDisplay.classList.remove("active");
       }
       scoreDisplay.textContent = score;
+      saveScore();
 
       if (score % 10 === 0 && score > 0) {
         targetColor = colors[Math.floor(Math.random() * colors.length)];
@@ -478,8 +582,8 @@
       }
     });
 
-    // Boshlang‘ich rang ko‘rsatkichi
     targetColorIndicator.style.background = targetColor;
+    fetchScores();
 
     setInterval(updateGame, spawnInterval);
     setInterval(updateProgress, 100);
